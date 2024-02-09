@@ -1,17 +1,160 @@
 <!DOCTYPE html>
-<html lang="">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
-    <title><%= htmlWebpackPlugin.options.title %></title>
-  </head>
-  <body>
-    <noscript>
-      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
-    </noscript>
-    <div id="app"></div>
-    <!-- built files will be auto injected -->
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Web Viewer</title>
+  <!-- Load Vue.js -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+  <!-- Load Three.js -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.130.1/build/three.min.js"></script>
+  <!-- Load GLTFLoader -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.130.1/examples/js/loaders/GLTFLoader.js"></script>
+  <style>
+    /* Style for round buttons */
+    button {
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      font-size: 16px;
+      background-color: #3498db;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+
+    /* Style for text */
+    h1, p {
+      font-family: Arial, sans-serif;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1 style="text-align: center; font-size: 24px;">View your 3D file</h1>
+    <p style="text-align: center; font-size: 18px;">Support GLB format</p>
+    <input type="file" @change="loadModel" accept=".glb" style="display: none;">
+    <label for="fileInput" style="display: flex; justify-content: center; align-items: center;">
+      <span style="font-size: 18px; background-color: #3498db; color: #fff; padding: 10px 20px; border-radius: 10px; cursor: pointer;">Choose File</span>
+      <input type="file" id="fileInput" @change="loadModel" accept=".glb" style="display: none;">
+    </label>
+    <three-d-viewer :model="loadedModel" />
+  </div>
+
+  <script>
+    // Vue component for 3D viewer
+    Vue.component('three-d-viewer', {
+      props: ['model'],
+      template: `
+        <div ref="container" style="width: 100%; height: 100%;"></div>
+      `,
+      mounted() {
+        this.initThree();
+      },
+      watch: {
+        model(value) {
+          if (value) {
+            this.loadModel(value);
+          }
+        }
+      },
+      methods: {
+        initThree() {
+          // Create a scene
+          const scene = new THREE.Scene();
+
+          // Create a camera
+          const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+          camera.position.z = 5;
+
+          // Create a renderer
+          const renderer = new THREE.WebGLRenderer();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          this.$refs.container.appendChild(renderer.domElement);
+
+          // Add directional light
+          const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+          directionalLight.position.set(1, 1, 1).normalize();
+          scene.add(directionalLight);
+
+          // Create a default cube
+          const geometry = new THREE.BoxGeometry();
+          const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+          const cube = new THREE.Mesh(geometry, material);
+          scene.add(cube);
+
+          // Animate the model
+          const animate = () => {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+          };
+          animate();
+        },
+        loadModel(model) {
+          if (!model) return;
+
+          // Clear previous models
+          this.$refs.container.innerHTML = '';
+
+          // Create a scene
+          const scene = new THREE.Scene();
+
+          // Create a camera
+          const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+          camera.position.z = 5;
+
+          // Create a renderer
+          const renderer = new THREE.WebGLRenderer();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          this.$refs.container.appendChild(renderer.domElement);
+
+          // Add directional light
+          const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+          directionalLight.position.set(1, 1, 1).normalize();
+          scene.add(directionalLight);
+
+          // Load GLTF model
+          const loader = new THREE.GLTFLoader();
+          loader.load(model, (gltf) => {
+            const loadedModel = gltf.scene;
+            scene.add(loadedModel);
+          });
+
+          // Animate the model
+          const animate = () => {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+          };
+          animate();
+        }
+      }
+    });
+
+    new Vue({
+      el: '#app',
+      data() {
+        return {
+          loadedModel: null
+        };
+      },
+      methods: {
+        loadModel(event) {
+          const file = event.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = () => {
+              this.loadedModel = reader.result;
+            };
+            reader.readAsDataURL(file);
+          }
+        }
+      }
+    });
+  </script>
+</body>
 </html>
